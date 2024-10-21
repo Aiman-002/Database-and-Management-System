@@ -1,0 +1,46 @@
+Q2
+
+----------1------------
+SELECT DISTINCT F.pizzeria
+FROM Person P
+JOIN Frequents F ON P.name = F.name
+WHERE P.age < 18;
+
+-----------2-------------
+SELECT DISTINCT P.name
+FROM Person P
+JOIN Eats E ON P.name = E.name
+WHERE P.gender = 'female'
+AND (E.pizza = 'mushroom' OR E.pizza = 'pepperoni');
+
+-----------3--------------
+SELECT DISTINCT S.pizzeria
+FROM Eats E
+JOIN Serves S ON E.pizza = S.pizza
+WHERE E.name = 'Amy' AND S.price < 10;
+
+-----------4---------------
+SELECT DISTINCT P.name
+FROM Person P
+WHERE P.name NOT IN (
+  SELECT F.name
+  FROM Frequents F
+  WHERE F.name NOT IN (
+    SELECT DISTINCT E.name
+    FROM Eats E
+    JOIN Serves S ON E.pizza = S.pizza
+  )
+);
+
+------------5--------------
+SELECT DISTINCT P.name
+FROM Person P
+WHERE P.name NOT IN (
+  SELECT DISTINCT E.name
+  FROM Eats E
+  JOIN Serves S ON E.pizza = S.pizza
+  EXCEPT
+  SELECT DISTINCT F.name
+  FROM Frequents F
+);
+

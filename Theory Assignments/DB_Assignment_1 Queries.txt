@@ -1,0 +1,258 @@
+Question 2
+
+1
+SELECT DISTINCT S.SNAME
+FROM STUDENT S
+JOIN ENROLLED E ON S.SNUM = E.SNUM
+JOIN CLASS C ON E.CNAME = C.NAME
+JOIN FACULTY F ON C.FID = F.FID
+WHERE S.LEVEL = 'JR' AND F.FNAME = 'I. Teach';
+
+2
+SELECT MAX(S.AGE)
+FROM STUDENT S
+WHERE S.MAJOR = 'History' OR S.SNUM IN (
+    SELECT DISTINCT E.SNUM
+    FROM ENROLLED E
+    JOIN CLASS C ON E.CNAME = C.NAME
+    JOIN FACULTY F ON C.FID = F.FID
+    WHERE F.FNAME = 'I. Teach'
+);
+
+3
+SELECT DISTINCT C.NAME
+FROM CLASS C
+LEFT JOIN ENROLLED E ON C.NAME = E.CNAME
+WHERE C.ROOM = 'R128' OR (SELECT COUNT(*) FROM ENROLLED WHERE CNAME = C.NAME) >= 5;
+
+4
+SELECT S.SNAME
+FROM STUDENT S
+JOIN ENROLLED E1 ON S.SNUM = E1.SNUM
+JOIN ENROLLED E2 ON S.SNUM = E2.SNUM
+JOIN CLASS C1 ON E1.CNAME = C1.NAME
+JOIN CLASS C2 ON E2.CNAME = C2.NAME
+WHERE C1.MEETS_AT = C2.MEETS_AT AND C1.NAME <> C2.NAME;
+
+5
+SELECT DISTINCT FNAME
+FROM FACULTY
+WHERE NOT EXISTS (
+    SELECT DISTINCT ROOM
+    FROM CLASS
+    WHERE NOT EXISTS (
+        SELECT *
+        FROM CLASS
+        WHERE FACULTY.FID = CLASS.FID AND CLASS.ROOM = ROOM
+    )
+);
+
+6
+SELECT DISTINCT F.FNAME
+FROM FACULTY F
+JOIN CLASS C ON F.FID = C.FID
+GROUP BY F.FNAME
+HAVING SUM(
+    SELECT COUNT(*) FROM ENROLLED E WHERE E.CNAME = C.NAME
+) < 5;
+
+
+7
+SELECT LEVEL, AVG(AGE)
+FROM STUDENT
+GROUP BY LEVEL;
+
+8
+SELECT LEVEL, AVG(AGE)
+FROM STUDENT
+WHERE LEVEL <> 'JR'
+GROUP BY LEVEL;
+
+9
+SELECT F.FNAME, COUNT(C.NAME)
+FROM FACULTY F
+JOIN CLASS C ON F.FID = C.FID
+WHERE C.ROOM = 'R128'
+GROUP BY F.FNAME
+HAVING COUNT(DISTINCT C.ROOM) = 1;
+
+10
+SELECT SNAME
+FROM STUDENT
+WHERE SNUM IN (
+    SELECT SNUM
+    FROM ENROLLED
+    GROUP BY SNUM
+    HAVING COUNT(DISTINCT CNAME) = (
+        SELECT MAX(COUNT(DISTINCT CNAME))
+        FROM ENROLLED
+    )
+);
+
+11
+SELECT SNAME
+FROM STUDENT
+WHERE SNUM NOT IN (SELECT DISTINCT SNUM FROM ENROLLED);
+
+12
+SELECT DISTINCT AGE, 
+       (SELECT LEVEL 
+        FROM STUDENT S2 
+        WHERE S2.AGE = S1.AGE 
+        GROUP BY LEVEL 
+        ORDER BY COUNT(*) DESC 
+        FETCH FIRST 1 ROWS ONLY) AS MOST_COMMON_LEVEL
+FROM STUDENT S1;
+
+
+Question 3
+
+1
+SELECT DISTINCT A.aname
+FROM Aircraft A
+WHERE NOT EXISTS (
+    SELECT E.eid
+    FROM Employees E
+    WHERE E.salary <= 80000
+          AND E.eid IN (
+              SELECT C.eid
+              FROM Certified C
+              WHERE C.aid = A.aid
+          )
+);
+
+2
+SELECT C.eid, MAX(A.cruisingrange) AS max_cruising_range
+FROM Certified C
+JOIN Aircraft A ON C.aid = A.aid
+GROUP BY C.eid
+HAVING COUNT(*) > 3;
+
+3
+SELECT E.ename
+FROM Employees E
+WHERE E.eid IN (
+    SELECT DISTINCT C.eid
+    FROM Certified C
+    WHERE EXISTS (
+        SELECT MIN(F.price)
+        FROM Flights F
+        WHERE F.from = 'Los Angeles' AND F.to = 'Honolulu'
+    )
+    AND EXISTS (
+        SELECT F.price
+        FROM Flights F
+        WHERE F.from = 'Los Angeles' AND F.to = 'Honolulu'
+        ORDER BY F.price
+        FETCH FIRST 1 ROWS ONLY
+    )
+);
+
+4
+
+SELECT DISTINCT E.ename
+FROM Employees E
+WHERE E.eid IN (
+    SELECT C.eid
+    FROM Certified C
+    JOIN Aircraft A ON C.aid = A.aid
+    WHERE A.aname LIKE 'Boeing%');
+
+5
+
+SELECT DISTINCT A.aid
+FROM Aircraft A
+WHERE A.aid IN (
+    SELECT DISTINCT F.flno
+    FROM Flights F
+    WHERE F.from = 'Los Angeles' AND F.to = 'Chicago');
+
+6
+
+SELECT DISTINCT F.flno, F.from, F.to
+FROM Flights F
+WHERE NOT EXISTS (
+    SELECT E.eid
+    FROM Employees E
+    WHERE E.salary > 100000
+          AND E.eid NOT IN (
+              SELECT C.eid
+              FROM Certified C
+              WHERE C.aid = F.aid
+          )
+);
+
+7
+SELECT DISTINCT F1.departs
+FROM Flights F1, Flights F2, Flights F3
+WHERE F1.from = 'Madison' AND F2.from = F1.to AND F3.from = F2.to
+      AND F3.to = 'New York' AND F3.arrives <= '18:00';
+
+8
+SELECT AVG(CASE WHEN E.eid IN (SELECT DISTINCT C.eid FROM Certified C) THEN E.salary ELSE 0 END) -
+       AVG(E.salary) AS salary_difference
+FROM Employees E;
+
+9
+SELECT E.ename, E.salary
+FROM Employees E
+WHERE E.eid NOT IN (SELECT DISTINCT C.eid FROM Certified C)
+      AND E.salary > (SELECT AVG(E1.salary) FROM Employees E1 WHERE E1.eid IN (SELECT DISTINCT C1.eid FROM Certified C1));
+
+10
+SELECT E.ename
+FROM Employees E
+WHERE E.eid IN (
+    SELECT DISTINCT C.eid
+    FROM Certified C
+    WHERE C.aid IN (
+        SELECT A.aid
+        FROM Aircraft A
+        WHERE A.cruisingrange > 1000
+    )
+    AND C.eid NOT IN (
+        SELECT C1.eid
+        FROM Certified C1
+        WHERE C1.aid NOT IN (
+            SELECT A1.aid
+            FROM Aircraft A1
+            WHERE A1.cruisingrange > 1000
+        )
+    )
+);
+
+11
+SELECT E.ename
+FROM Employees E
+WHERE E.eid IN (
+    SELECT C.eid
+    FROM Certified C
+    JOIN Aircraft A ON C.aid = A.aid
+    WHERE A.cruisingrange > 1000
+    GROUP BY C.eid
+    HAVING COUNT(DISTINCT A.aid) >= 2
+)
+AND E.eid NOT IN (
+    SELECT C.eid
+    FROM Certified C
+    JOIN Aircraft A ON C.aid = A.aid
+    WHERE A.cruisingrange <= 1000
+);
+
+12
+SELECT E.ename
+FROM Employees E
+WHERE E.eid IN (
+    SELECT C.eid
+    FROM Certified C
+    JOIN Aircraft A ON C.aid = A.aid
+    WHERE A.cruisingrange > 1000 AND A.aname LIKE 'Boeing%'
+)
+AND E.eid NOT IN (
+    SELECT C.eid
+    FROM Certified C
+    JOIN Aircraft A ON C.aid = A.aid
+    WHERE A.cruisingrange <= 1000
+);
+
+
